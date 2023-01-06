@@ -1,15 +1,16 @@
 package DAO;
 
+import Conection.BuidConection;
 import Model.Account;
 import Model.CheckingAccount;
 import Model.SavingsAccount;
 
 import java.sql.*;
-import java.util.concurrent.ExecutionException;
-
 
 public class AccountDAO {
-    public Integer insertSavingsAccount(String name, String cpf, String birthDate, double balance, String type, Connection con){
+    public Integer insertSavingsAccount(String name, String cpf, String birthDate, double balance, String type){
+        Connection con = new BuidConection().getCon();
+
         Integer idClient = null;
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -34,7 +35,7 @@ public class AccountDAO {
             }
 
             if(validationCpf != null){
-                throw new SQLException("Não é possível cadastrar duas contas poupança com o mesmo cpf");
+                throw new SQLException("Não é possível cadastrar mais de uma conta poupança com o mesmo cpf");
             }
 
             ps.close();
@@ -70,7 +71,9 @@ public class AccountDAO {
         }
     }
 
-    public Integer insertCheckingAccount(String name, String cpf, String birthDate, double balance, String type, Connection con){
+    public Integer insertCheckingAccount(String name, String cpf, String birthDate, double balance, String type){
+
+        Connection con = new BuidConection().getCon();
 
         Integer idClient = null;
         PreparedStatement ps = null;
@@ -96,7 +99,7 @@ public class AccountDAO {
             }
 
             if(validationCpf != null){
-                throw new SQLException("Não é possível cadastrar duas contas corrente com o mesmo cpf");
+                throw new SQLException("Não é possível cadastrar mais de uma conta corrente com o mesmo cpf");
             }
 
             ps.close();
@@ -132,7 +135,9 @@ public class AccountDAO {
         }
     }
 
-    public double depositAccount(String type, String cpf, double value, Connection con){
+    public double depositAccount(String type, String cpf, double value){
+
+        Connection con = new BuidConection().getCon();
 
         double currentBalance = 0;
         PreparedStatement ps = null;
@@ -203,14 +208,16 @@ public class AccountDAO {
 
             return currentBalance;
         }catch(Exception e){
-            if(!e.getMessage().equals("Nenhum resultado foi retornado pela consulta.")){
+            if(!e.getMessage().equals("No results were returned by the query.")){
                 System.out.println(e.getMessage());
             }
             return currentBalance;
         }
     }
 
-    public double withdrawAccount(String type, String cpf, double value, Connection con){
+    public double withdrawAccount(String type, String cpf, double value){
+
+        Connection con = new BuidConection().getCon();
 
         double currentBalance = 0;
 
@@ -287,15 +294,17 @@ public class AccountDAO {
 
             return currentBalance;
         }catch(Exception e){
-            if(!e.getMessage().equals("Nenhum resultado foi retornado pela consulta.")){
+            if(!e.getMessage().equals("No results were returned by the query.")){
                 System.out.println(e.getMessage());
             }
             return currentBalance;
         }
     }
 
-    public Account validationAccount(String type, String cpf, Connection con){
-        Integer idClient = null;
+    public Account validationAccount(String type, String cpf){
+
+        Connection con = new BuidConection().getCon();
+
         PreparedStatement ps = null;
         ResultSet rs = null;
         String sqlSelect1 = "select client_name, cpf, birthdate from savings_account where cpf = ?";
@@ -340,10 +349,116 @@ public class AccountDAO {
             return account;
 
         }catch(Exception e){
-            if(!e.getMessage().equals("Nenhum resultado foi retornado pela consulta.")){
+            if(!e.getMessage().equals("No results were returned by the query.")){
                 System.out.println(e.getMessage());
             }
             return account;
         }
     }
+
+    public Double getCredit(String cpf, double value){
+        Connection con = new BuidConection().getCon();
+
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        Integer idClient = null;
+        double credit = 0;
+
+        String sqlValidation = "select id from checking_account where cpf = ?";
+        String sqlSelect = "select debit_balance from credit_checking_account where cpf_account = ?";
+        String sqlInsert = "insert into credit_checking_account(cpf_account, debit_balance)" +
+                "values(?,?) returning debit_balance";
+        try{
+            ps = con.prepareStatement(sqlValidation);
+
+            if(cpf.length() != 11){
+                throw new ArithmeticException("O CPF precisa ser composto de 11 números!");
+            }else{
+                ps.setString(1, cpf);
+            }
+
+            rs = ps.executeQuery();
+
+            if(rs.next()){
+                idClient = rs.getInt("id");
+            }
+
+            ps.close();
+
+            if(idClient == null){
+                throw new SQLException("Não existe nenhuma conta corrente registrada com esse cpf!");
+            }else{
+                ps = con.prepareStatement(sqlSelect);
+
+                ps.setString(1, cpf);
+
+                rs = ps.executeQuery();
+                if(rs != null){
+                    if(rs.next()){
+                        credit = rs.getDouble("debit_balance");
+                    }
+
+                    ps.close();
+
+                }
+                ps = con.prepareStatement(sqlInsert);
+
+                if((credit + value) > 10000){
+                    throw new ArithmeticException("Limite máximo de crédito atingido. Pague sua fatura ou tente solicitar um valor menor");
+                }else{
+                    ps.setString(1, cpf);
+                    ps.setDouble(2, value);
+
+                    rs = ps.executeQuery();
+
+                    if(rs.next()){
+                        credit = rs.getDouble("debit_balance");
+                    }
+
+                    ps.close();
+                    con.close();
+                }
+            }
+
+            return credit;
+
+        }catch(Exception e){
+            if(!e.getMessage().equals("No results were returned by the query.")){
+                System.out.println(e.getMessage());
+            }
+            return credit;
+        }
+    }
+
+    public double showDebit(String cpf){
+
+        Connection con = new BuidConection().getCon();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        double credit = 0;
+
+        String sqlSelect = "select debit_balance from credit_checking_account where cpf_account = ?";
+
+        try {
+            ps = con.prepareStatement(sqlSelect);
+
+            ps.setString(1, cpf);
+
+            rs = ps.executeQuery();
+
+            if(rs.next()){
+                credit = rs.getDouble("debit_balance");
+            }
+
+            return credit;
+        }catch (Exception e){
+            if(!e.getMessage().equals("No results were returned by the query.")){
+                System.out.println(e.getMessage());
+            }
+            credit = -1;
+            return credit;
+        }
+
+    }
+//    public double payCredit(String cpf, double value)
 }

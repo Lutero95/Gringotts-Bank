@@ -1,33 +1,30 @@
 package Controller;
 
-import Conection.BuidConection;
+
 import DAO.AccountDAO;
 import Model.Account;
 import Model.CheckingAccount;
+import Model.Credit;
 import Model.SavingsAccount;
-import Util.ClearConsole;
 
 
-import java.sql.Connection;
 import java.util.Scanner;
 
 public class Main {
 
-//    static Connection con = new BuidConection().getCon();
     static AccountDAO dao = new AccountDAO();
     static Scanner scan = new Scanner(System.in);
     public static void main(String[] args) {
-
-        while(true){
-
+        int opInicio = -1;
+        do{
             try{
                 System.out.println("Banco Gringotts" +
                         "\n1 - Login" +
                         "\n2 - Abrir conta" +
-                        "\n0 - Encerrar sessão");
+                        "\n0 - Sair");
                 System.out.print("selecione uma opção: ");
-                int opInicio = scan.nextInt();
-                scan.nextLine();
+                opInicio = Integer.parseInt(scan.nextLine());
+//                scan.nextLine();
 
                 if(opInicio < 0 || opInicio > 2){
                     throw new ArithmeticException("Informe uma opção válida!");
@@ -35,6 +32,7 @@ public class Main {
 
                 switch (opInicio){
                     case 1:
+
                         System.out.println("Login");
                         System.out.println();
                         System.out.println("Informe o tipo da conta que deseja logar:" +
@@ -52,20 +50,31 @@ public class Main {
 
                         Account account = authentication(typeAccountAuthentication, cpfAccountAuthentication);
                         if(account != null){
-                            while(true){
+
+                            int op = -1;
+                            do{
                                 try{
 
-                                    System.out.println("Bem vindo, " + account.getName());
-                                    System.out.println("Menu:" +
+                                    System.out.println("Bem vindo, " + account.getName() + "\n");
+                                    System.out.print("Menu:" +
                                             "\n1 - Realizar depósito" +
-                                            "\n2 - Realizar saque" +
-                                            "\n0 - Sair");
+                                            "\n2 - Realizar saque");
+                                    if(account.getType().equals("CC")){
+                                        System.out.print("\n3 - Solicitar crédito" +
+                                                "\n4 - Pagar emprestimo");
+                                    }
+                                    System.out.println("\n0 - Logout");
                                     System.out.print("Selecione uma opção: ");
-                                    int op = scan.nextInt();
-                                    scan.nextLine();
+                                    op = Integer.parseInt(scan.nextLine());
 
-                                    if(op < 0 || op > 2){
-                                        throw new ArithmeticException("Informe uma opção válida");
+                                    if(account.getType().equals("CC")){
+                                        if(op < 0 || op > 4){
+                                            throw new ArithmeticException("Informe uma opção válida");
+                                        }
+                                    }else{
+                                        if(op < 0 || op > 2){
+                                            throw new ArithmeticException("Informe uma opção válida");
+                                        }
                                     }
 
                                     switch(op){
@@ -85,86 +94,95 @@ public class Main {
                                             }
                                             break;
 
-                                        case 0:
-                                            System.out.println("Usuário deslogado");
-                                            op = -1;
+                                        case 3:
+                                            double creditValue = credit();
+                                            System.out.println("Empréstimo realizado com sucesso!");
+                                            System.out.println("Limite utilizado: R$ "
+                                             + creditValue + "/10000.00");
                                             break;
-                                    }
 
-                                    if(op == -1){
-                                        break;
+                                        case 4:
+                                            System.out.println("Pagar emprestimo\n");
+                                            System.out.println("Débito atual: R$ " + showDebitAccount(account.getCpf()) + "\n");
+                                            System.out.print("informe o valor que deseja abater da dívida: ");
+//                                            double value = Double.parseDouble(scan.nextLine());
                                     }
 
                                 }catch (RuntimeException e){
                                     if (e.getMessage() == null) {
-                                        System.out.println("O tipo do valor informado é diferente do solicitado");
+                                        System.out.println("O tipo do valor informado é diferente do solicitado!");
+//                                        break;
+
                                     } else {
-                                        System.out.println(e.getMessage());
+                                        System.out.println("Erro: " + e.getMessage());
                                     }
-                                    break;
+//                                    break;
                                 }
 
-                            }
+                            }while(op != 0);
+
+                            System.out.println("Usuário deslogado");
+
                         }else{
                             System.out.println("Não existe nenhuma conta com esse cpf");
                         }
                         break;
 
                     case 2:
-                        System.out.println("Abrir conta bancária" +
-                                "\n1 - Abrir conta poupança" +
-                                "\n2 - Abrir conta corrente");
-                        System.out.print("Selecione uma opção: ");
-                        int opOpenAccount = scan.nextInt();
-                        scan.nextLine();
 
-                        if(opOpenAccount < 1 || opOpenAccount > 2){
-                            throw new ArithmeticException("Informe uma opção válida");
-                        }
+                        try{
+                            System.out.println("Abrir conta bancária" +
+                                    "\n1 - Abrir conta poupança" +
+                                    "\n2 - Abrir conta corrente");
+                            System.out.print("Selecione uma opção: ");
+                            int opOpenAccount = Integer.parseInt(scan.nextLine());
 
-                        switch(opOpenAccount){
-                            case 1:
+                            if(opOpenAccount < 1 || opOpenAccount > 2){
+                                throw new ArithmeticException("Informe uma opção válida");
+                            }
 
-                                System.out.println(addSavingsAccount());
+                            switch(opOpenAccount){
+                                case 1:
+
+                                    System.out.println(addSavingsAccount());
+                                    break;
+
+                                case 2:
+
+                                    System.out.println(addCheckingAccount());
+                            }
+                            break;
+
+                        }catch(RuntimeException e){
+                            if(e.getMessage() == null){
+                                System.out.println("O tipo do valor informado é diferente do solicitado!");
                                 break;
-
-                            case 2:
-
-                                System.out.println(addCheckingAccount());
-                                break;
+                            }else{
+                                System.out.println("Erro: " + e.getMessage());
+                            }
+                            break;
                         }
-                        break;
-
-                    case 0:
-                        System.out.println("Obrigado por utilizar o nosso sistema :)");
-                        opInicio = -1;
-                        break;
-                }
-
-                if(opInicio == -1){
-                    break;
                 }
 
 
 
             }catch(RuntimeException e){
                 if (e.getMessage() == null) {
-                    System.out.println("O tipo do valor informado é diferente do solicitado");
-                    scan.nextLine();
+                    System.out.println("O tipo do valor informado é diferente do solicitado!");
+//                    break;
                 } else {
                     System.out.println(e.getMessage());
                 }
             }
-        }
+        }while (opInicio != 0);
+
+        System.out.println("Obrigado por utilizar o nosso sistema :)");
 
     }
 
     public static String addSavingsAccount(){
 
-        Connection con = new BuidConection().getCon();
-
-        System.out.println("Conta Poupança");
-        System.out.println();
+        System.out.println("Conta Poupança\n");
         System.out.print("Nome: ");
         String nameSavingsAccount = scan.nextLine();
         System.out.print("CPF: ");
@@ -174,7 +192,7 @@ public class Main {
 
         SavingsAccount s = new SavingsAccount(nameSavingsAccount, cpfSavingsAccount, birthDateSavingsAccount);
 
-        if(dao.insertSavingsAccount(s.getName(), s.getCpf(), s.getBirthDate(), s.getBalance(), s.getType(), con) != null){
+        if(dao.insertSavingsAccount(s.getName(), s.getCpf(), s.getBirthDate(), s.getBalance(), s.getType()) != null){
             return "Conta Aberta com sucesso!";
         }else{
             throw new NullPointerException("Falha ao abrir conta!");
@@ -183,10 +201,7 @@ public class Main {
 
     public static String addCheckingAccount(){
 
-        Connection con = new BuidConection().getCon();
-
-        System.out.println("Conta Corrente");
-        System.out.println();
+        System.out.println("Conta Corrente\n");
         System.out.print("Nome: ");
         String nameCheckingAccount = scan.nextLine();
         System.out.print("CPF: ");
@@ -196,7 +211,7 @@ public class Main {
 
         CheckingAccount c = new CheckingAccount(nameCheckingAccount, cpfCheckingAccount, birthDateCheckingAccount);
 
-        if(dao.insertCheckingAccount(c.getName(), c.getCpf(), c.getBirthDate(), c.getBalance(), c.getType(), con) != null){
+        if(dao.insertCheckingAccount(c.getName(), c.getCpf(), c.getBirthDate(), c.getBalance(), c.getType()) != null){
             return "Conta aberta com sucesso!";
         }else{
             throw new NullPointerException("Falha ao abrir conta!");
@@ -205,22 +220,19 @@ public class Main {
 
     public static double deposit(Account account){
 
-        Connection con = new BuidConection().getCon();
-
         System.out.println("Depósito");
         System.out.println();
 
         System.out.print("Informe o cpf do proprietário da conta: ");
         String cpf = scan.nextLine();
         System.out.print("Informe o valor do depósito: ");
-        double value = scan.nextDouble();
-        scan.nextLine();
+        double value = Double.parseDouble(scan.nextLine());
 
         if(value <= 0){
             throw new ArithmeticException("O valor do depósito tem que ser maior que 0!");
         }
 
-        double currentBalance = dao.depositAccount(account.getType(), cpf, value, con);
+        double currentBalance = dao.depositAccount(account.getType(), cpf, value);
         if(currentBalance != 0){
             return currentBalance;
         }else{
@@ -230,18 +242,15 @@ public class Main {
 
     public static double withdraw(String type){
 
-        Connection con = new BuidConection().getCon();
-
         System.out.println("Saque");
         System.out.println();
 
         System.out.print("Informe o cpf do proprietário da conta: ");
         String cpf = scan.nextLine();
         System.out.print("Informe o valor do saque: ");
-        double value = scan.nextDouble();
-        scan.nextLine();
+        double value = Double.parseDouble(scan.nextLine());
 
-        double currentBalance = dao.withdrawAccount(type, cpf, value, con);
+        double currentBalance = dao.withdrawAccount(type, cpf, value);
         if(currentBalance != 0){
             return currentBalance;
         }else{
@@ -251,8 +260,7 @@ public class Main {
 
     public static Account authentication(String type, String cpf){
 
-        Connection con = new BuidConection().getCon();
-        Account account = dao.validationAccount(type, cpf, con);
+        Account account = dao.validationAccount(type, cpf);
         if(account != null){
             return account;
         }else{
@@ -263,6 +271,37 @@ public class Main {
             }
             return null;
 
+        }
+    }
+
+    public static double credit(){
+
+        System.out.println("Sistema de liberação de crédito\n");
+
+        System.out.print("Informe o cpf do proprietário da conta: ");
+        String cpf = scan.nextLine();
+        System.out.print("Valor do cŕedito: ");
+        double value = Double.parseDouble(scan.nextLine());
+        Credit c = new Credit(cpf, value);
+
+        if(value <= 0){
+            throw new ArithmeticException("O valor do crédito tem que ser maior que 0!");
+        }
+
+        double creditValue = dao.getCredit(c.getCpf(), c.getCredit());
+        if(creditValue != 0){
+            return creditValue;
+        }else{
+            throw new RuntimeException("Não foi possível obter cŕedito");
+        }
+    }
+
+    public static double showDebitAccount(String cpf){
+        double debitValue = dao.showDebit(cpf);
+        if(debitValue != -1){
+            return debitValue;
+        }else{
+            throw new RuntimeException("Houve um erro inesperado. Não foi possível verificar o seu débito");
         }
     }
 }
