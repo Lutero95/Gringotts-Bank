@@ -104,8 +104,15 @@ public class Main {
                                         case 4:
                                             System.out.println("Pagar emprestimo\n");
                                             System.out.println("Débito atual: R$ " + showDebitAccount(account.getCpf()) + "\n");
+
+                                            System.out.print("Informe o cpf do proprietário da conta: ");
+                                            String cpf = scan.nextLine();
+
                                             System.out.print("informe o valor que deseja abater da dívida: ");
-//                                            double value = Double.parseDouble(scan.nextLine());
+                                            double value = Double.parseDouble(scan.nextLine());
+
+                                            System.out.println("Pagamento realizado com sucesso" +
+                                                    "\nDébito restante: R$ " + payDebitAccount(cpf, value));
                                     }
 
                                 }catch (RuntimeException e){
@@ -131,23 +138,23 @@ public class Main {
                     case 2:
 
                         try{
-                            System.out.println("Abrir conta bancária" +
-                                    "\n1 - Abrir conta poupança" +
-                                    "\n2 - Abrir conta corrente");
+                            System.out.println("Abrir conta bancária\n" +
+                                    "\nCP - Abrir conta poupança" +
+                                    "\nCC - Abrir conta corrente");
                             System.out.print("Selecione uma opção: ");
-                            int opOpenAccount = Integer.parseInt(scan.nextLine());
+                            String opOpenAccount = scan.nextLine();
 
-                            if(opOpenAccount < 1 || opOpenAccount > 2){
+                            if((!opOpenAccount.equals("CP")) && (!opOpenAccount.equals("CC"))){
                                 throw new ArithmeticException("Informe uma opção válida");
                             }
 
                             switch(opOpenAccount){
-                                case 1:
+                                case "CP":
 
                                     System.out.println(addSavingsAccount());
                                     break;
 
-                                case 2:
+                                case "CC":
 
                                     System.out.println(addCheckingAccount());
                             }
@@ -302,6 +309,20 @@ public class Main {
             return debitValue;
         }else{
             throw new RuntimeException("Houve um erro inesperado. Não foi possível verificar o seu débito");
+        }
+    }
+
+    public static double payDebitAccount(String cpf, double value){
+
+        if(value <= 0){
+            throw new ArithmeticException("O valor do depósito tem que ser maior que 0!");
+        }
+
+        double debitValue = dao.payDebit(cpf, value);
+        if(debitValue != -1){
+            return debitValue;
+        }else{
+            throw new RuntimeException("Houve um erro inesperado. Não foi possível realizar o pagamento do seu débito");
         }
     }
 }

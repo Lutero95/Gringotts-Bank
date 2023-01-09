@@ -1,12 +1,8 @@
 package Conection;
 
-import Model.SavingsAccount;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.Statement;
-import java.util.concurrent.ExecutionException;
 
 public class BuidConection {
     private String url;
